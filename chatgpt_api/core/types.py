@@ -86,6 +86,8 @@ class ImageRequest:
     input_images: list["ImageInput"] = field(default_factory=list)
     model: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    conversation_id: str | None = None       # ต่อแชทเดิม (เจนหลายรูป/แชท)
+    parent_message_id: str | None = None
 
 
 @dataclass(slots=True)

@@ -1578,7 +1578,10 @@ async def _image_edit(
     prompt = _str_or_none(body.get("prompt"))
     if not prompt:
         raise ValueError("prompt must be a non-empty string")
-    input_images = _image_inputs_from_body(body, require=True)
+    # continue แชทเดิม: ถ้ามี conversation_id = turn ถัดไป (ไม่ต้อง upload รูปซ้ำ, ต่อ context เดิม)
+    conversation_id = _str_or_none(body.get("conversation_id"))
+    parent_message_id = _str_or_none(body.get("parent_message_id"))
+    input_images = _image_inputs_from_body(body, require=not conversation_id)
     aspect_ratio = _image_aspect_ratio_from_body(body)
     edit_prompt = _image_edit_prompt(prompt, aspect_ratio)
 
@@ -1612,11 +1615,14 @@ async def _image_edit(
                 input_images=input_images,
                 model=model_slug,
                 metadata=metadata,
+                conversation_id=conversation_id,
+                parent_message_id=parent_message_id,
             ),
             requested_model,
             model_slug,
             operation_id=operation.operation_id,
         )
+        _raw = image_response.raw if isinstance(image_response.raw, dict) else {}
         result = _image_generation_response(
             requested_model,
             image_response,
@@ -1633,6 +1639,9 @@ async def _image_edit(
         result["input_image_count"] = len(input_images)
         result["aspect_ratio"] = aspect_ratio
         result["warnings"] = [IMAGE_EDIT_ASPECT_RATIO_WARNING]
+        # คืน conversation_id + message_id ให้ client ต่อแชทเดิม turn ถัดไป (เจนหลายรูป/แชท)
+        result["chatgpt_conversation_id"] = _raw.get("conversation_id")
+        result["chatgpt_message_id"] = _raw.get("message_id")
         return result
 
     try:

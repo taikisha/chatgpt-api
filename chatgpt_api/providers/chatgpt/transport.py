@@ -317,10 +317,15 @@ class ChatGPTWebTransport:
         events = self._post_conversation(conversation_url, headers, payload)
         assets = _image_asset_pointers_from_events(events, exclude=input_assets)
         conversation_id = _conversation_id_from_events(events)
+        # assistant message id ของ turn นี้ -> ใช้เป็น parent_message_id ของ turn ถัดไป (เจนหลายรูปในแชทเดียว)
+        message_id = _latest_message_id_from_value(events)
         on_conversation_id = request.metadata.get("on_conversation_id")
+        on_message_id = request.metadata.get("on_message_id")
         cancel_requested = request.metadata.get("cancel_requested")
         if conversation_id and callable(on_conversation_id):
             on_conversation_id(conversation_id)
+        if message_id and callable(on_message_id):
+            on_message_id(message_id)
         if conversation_id and callable(cancel_requested) and cancel_requested():
             self.stop_conversation(conversation_id, exclude_async_types=["pro_mode"])
             raise ProviderError("ChatGPT image generation cancelled")
@@ -336,7 +341,9 @@ class ChatGPTWebTransport:
         if not assets:
             raise ProviderError("ChatGPT image generation returned no image asset")
         images = [self._download_generated_image(asset, headers, conversation_id) for asset in assets]
-        return ImageResponse(images=images, prompt=request.prompt, raw={"events": events, "assets": assets})
+        return ImageResponse(images=images, prompt=request.prompt,
+                             raw={"events": events, "assets": assets,
+                                  "conversation_id": conversation_id, "message_id": message_id})
 
     def _build_image_chat_payload(self, request: ImageRequest, uploaded_files: list[dict[str, Any]]) -> dict[str, Any]:
         template = self.auth.captured_request_json if isinstance(self.auth.captured_request_json, dict) else {}
@@ -346,7 +353,8 @@ class ChatGPTWebTransport:
             system_hints.append("picture_v2")
         payload: dict[str, Any] = {
             "action": "next",
-            "parent_message_id": "client-created-root",
+            # ต่อแชทเดิม: parent = assistant message id ของ turn ก่อน (เจนหลายรูปในแชทเดียว = แชทน้อยลง กันบล็อค)
+            "parent_message_id": request.parent_message_id or "client-created-root",
             "model": request.model or str(template.get("model") or "auto"),
             "client_prepare_state": "success",
             "timezone_offset_min": timezone_payload["timezone_offset_min"],
@@ -361,6 +369,8 @@ class ChatGPTWebTransport:
             "force_parallel_switch": template.get("force_parallel_switch", "auto"),
             "messages": [_image_message_to_chatgpt(request.prompt, uploaded_files)],
         }
+        if request.conversation_id:                  # continue แชทเดิม (ไม่สร้างแชทใหม่)
+            payload["conversation_id"] = request.conversation_id
         return payload
 
     def _upload_file(
