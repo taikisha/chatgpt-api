@@ -88,6 +88,7 @@ class ImageRequest:
     metadata: dict[str, Any] = field(default_factory=dict)
     conversation_id: str | None = None       # ต่อแชทเดิม (เจนหลายรูป/แชท)
     parent_message_id: str | None = None
+    conversation_template_id: str | None = None   # เปิดแชทใหม่ใน Project/GPT (g-p-.../g-...)
 
 
 @dataclass(slots=True)
