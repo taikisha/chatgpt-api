@@ -1581,7 +1581,6 @@ async def _image_edit(
     # continue แชทเดิม: ถ้ามี conversation_id = turn ถัดไป (ไม่ต้อง upload รูปซ้ำ, ต่อ context เดิม)
     conversation_id = _str_or_none(body.get("conversation_id"))
     parent_message_id = _str_or_none(body.get("parent_message_id"))
-    conversation_template_id = _str_or_none(body.get("conversation_template_id"))
     input_images = _image_inputs_from_body(body, require=not conversation_id)
     aspect_ratio = _image_aspect_ratio_from_body(body)
     edit_prompt = _image_edit_prompt(prompt, aspect_ratio)
@@ -1618,7 +1617,6 @@ async def _image_edit(
                 metadata=metadata,
                 conversation_id=conversation_id,
                 parent_message_id=parent_message_id,
-                conversation_template_id=conversation_template_id,
             ),
             requested_model,
             model_slug,

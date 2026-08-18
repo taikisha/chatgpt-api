@@ -369,12 +369,6 @@ class ChatGPTWebTransport:
             "force_parallel_switch": template.get("force_parallel_switch", "auto"),
             "messages": [_image_message_to_chatgpt(request.prompt, uploaded_files)],
         }
-        if request.conversation_template_id:
-            # แชทใน Project (โฟลเดอร์ เช่น genPic): capture จริงส่ง conversation_mode gizmo ทุก turn.
-            # **experimental (2026-07-19):** เจนรูปใน Project มัก "completed without image asset"
-            # (image tool ไม่คืนรูปใน gizmo context) — factory ปล่อย setting ว่าง = ไม่ส่ง field นี้
-            payload["conversation_mode"] = {"kind": "gizmo_interaction",
-                                            "gizmo_id": request.conversation_template_id}
         if request.conversation_id:                  # continue แชทเดิม (ไม่สร้างแชทใหม่)
             payload["conversation_id"] = request.conversation_id
         return payload

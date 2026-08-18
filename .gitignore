@@ -18,6 +18,7 @@ node_modules/
 .playwright-cli/
 .playwright-mcp/
 *.log
+*.pid
 test-results/
 dist/
 build/
